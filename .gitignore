@@ -1,0 +1,6 @@
+[Net]
+bin/
+obj/
+*.user
+*.suo
+.vs/

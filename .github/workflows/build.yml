@@ -1,0 +1,96 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      md5: ${{ steps.checksum.outputs.md5 }}
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 9.0.x
+
+    - name: Build
+      run: dotnet build Jellyfin.Plugin.AribEit/Jellyfin.Plugin.AribEit.csproj --configuration Release
+
+    - name: Package Plugin
+      run: |
+        mkdir ./publish
+        cp Jellyfin.Plugin.AribEit/bin/Release/net9.0/Jellyfin.Plugin.AribEit.dll ./publish/
+        cd publish
+        zip -r ../Jellyfin.Plugin.AribEit.zip .
+
+    - name: Calculate MD5
+      id: checksum
+      run: echo "md5=$(md5sum Jellyfin.Plugin.AribEit.zip | cut -d ' ' -f 1)" >> $GITHUB_OUTPUT
+
+    - name: Get Version
+      id: get_version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        if [[ $VERSION == refs* ]]; then VERSION="0.0.0-draft"; fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: Jellyfin.Plugin.AribEit-zip
+        path: Jellyfin.Plugin.AribEit.zip
+
+  update-manifest:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: main
+
+    - name: Update manifest.json
+      run: |
+        VERSION="${{ needs.build.outputs.version }}"
+        MD5="${{ needs.build.outputs.md5 }}"
+        URL="https://github.com/${{ github.repository }}/releases/download/v${VERSION}/Jellyfin.Plugin.AribEit.zip"
+        
+        jq --arg ver "$VERSION" --arg url "$URL" --arg md5 "$MD5" \
+          '.[0].versions |= ([{version: $ver, changelog: "Release \($ver)", targetAbi: "10.11.0.0", sourceUrl: $url, checksum: $md5}] + .)' \
+          manifest.json > manifest.json.tmp && mv manifest.json.tmp manifest.json
+
+    - name: Commit and Push manifest.json
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add manifest.json
+        git commit -m "Update manifest.json to v${{ needs.build.outputs.version }}" || echo "No changes to commit"
+        git push origin main
+
+  release:
+    needs: [build, update-manifest]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: Jellyfin.Plugin.AribEit-zip
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: Jellyfin.Plugin.AribEit.zip
+        tag_name: ${{ github.ref_name }}
+        body: "Automated release for version ${{ needs.build.outputs.version }}"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

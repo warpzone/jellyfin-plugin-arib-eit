@@ -1,0 +1,53 @@
+<div id="AribEitConfigPage" data-role="page" class="page type-interior pluginConfigurationPage configPage" data-require="emby-input,emby-button">
+    <div data-role="content">
+        <div class="content-primary">
+            <h1>ARIB EIT Metadata Provider</h1>
+            <form class="configForm">
+                <div class="inputContainer">
+                    <input is="emby-input" type="text" id="txtCommandPath" required label="EIT Parse Program" />
+                    <div class="fieldDescription">Path to the program that parses the EIT in MPEG2-TS and outputs it in JSON format (e.g. /usr/bin/python3 /path/to/some_parser_script.py)</div>
+                </div>
+                <div>
+                    <button is="emby-button" type="submit" class="raised button-submit block"><span>Save</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        (function () {
+            var pluginId = "f8a4b2e1-7d3c-4a5b-9e8d-2c1a0b3f4e5d";
+
+            var page = document.querySelector('#AribEitConfigPage');
+
+            page.addEventListener('pageshow', function () {
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    var txtCommandPath = page.querySelector('#txtCommandPath');
+                    txtCommandPath.value = config.ExternalCommandPath || '';
+
+                    txtCommandPath.dispatchEvent(new Event('change', {
+                        bubbles: true,
+                        cancelable: false
+                    }));
+
+                    Dashboard.hideLoadingMsg();
+                });
+            });
+
+            page.querySelector('.configForm').addEventListener('submit', function (e) {
+                Dashboard.showLoadingMsg();
+                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    config.ExternalCommandPath = page.querySelector('#txtCommandPath').value;
+
+                    ApiClient.updatePluginConfiguration(pluginId, config).then(function (result) {
+                        Dashboard.processPluginConfigurationUpdateResult(result);
+                    });
+                });
+
+                e.preventDefault();
+                return false;
+            });
+        })();
+    </script>
+</div>
