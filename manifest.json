@@ -6,6 +6,14 @@
     "overview": "Extracts title, description, date, channel and genre from ARIB EIT embedded in TS files using an external command.",
     "owner": "warpzone",
     "category": "Metadata",
-    "versions": []
+    "versions": [
+      {
+        "version": "1.0.0",
+        "changelog": "Release 1.0.0",
+        "targetAbi": "10.11.0.0",
+        "sourceUrl": "https://github.com/warpzone/jellyfin-plugin-arib-eit/releases/download/v1.0.0/Jellyfin.Plugin.AribEit.zip",
+        "checksum": "12ca1c89a4c835fa200d0580c0908545"
+      }
+    ]
   }
 ]
