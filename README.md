@@ -88,7 +88,7 @@ ENV PYTHONPATH=/usr/local/lib/python3.13/dist-packages
 
 RUN set -x \
         && apt-get update \
-        && apt-get install -y --no-install-recommends python3-minimal \
+        && apt-get install -y --no-install-recommends python3-minimal libpython3-stdlib \
         && curl -L -o /usr/local/bin/TSInfoExtractor.py https://gist.github.com/tsukumijima/48cc26595bc2b05debdba2a655068696/raw/1c7868bb1c25065a00ce2675ad42af6a1a40f19f/TSInfoExtractor.py \
         && apt-get clean \
         && rm -rf /var/lib/apt/lists/*
